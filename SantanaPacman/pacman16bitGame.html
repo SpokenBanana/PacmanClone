@@ -1,0 +1,842 @@
+<html>
+	<head>
+		<script src="jquery-1.10.2.js" ></script>
+		<script src="jquery.hotkeys-master/jquery.hotkeys.js"></script>
+		<script src="key_status.js"></script>
+		<script type="text/javascript" charset="UTF-8" src="pacmanAtlas.json"></script>
+		<script type="text/javascript" src="levels16bit.js"></script>
+		<script type="text/javascript" src="currentMap.js"></script>
+		<style>
+			body {
+				background-color: black;
+			}
+			canvas {
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			#title {
+				font-size: 2em;
+				text-align: center;
+				float: center;
+				color: yellow;
+			}
+			#score {
+				font-size: 1em;
+				text-align: center;
+				color: white;
+				margin-top: -30px;
+			}
+			#reset {
+				clear:left;
+				background-color: black;
+				border-radius: 6px;
+				border-color: #09B1F9;
+				color: white;
+				position: absolute;
+				float: left;
+				font-family: "Times News";
+				cursor: pointer;
+			}
+			#reset:hover {
+				background-color: gray;
+			}
+			a {
+				color: #09B1F9;
+			}
+			#nav {
+				margin-top: -50px;
+			}
+
+		</style>
+	<head>
+
+		<body id="body">
+			<p id="title"> Pacman </p>
+			<p id="score"></p>
+			<div id="nav">
+			<p id="levelC"><a href="levelCreater.html">Level Creater </a></p>
+			<button id="reset">Reset To Default Map </button>
+			<p id="status" style="float: right; color: white; "></p>
+		</div>
+
+			<canvas id="game"> </canvas>
+		</body>
+<script>
+
+$(document).ready(function() {
+
+var body = document.getElementById("body");
+var scoreDisplay = document.getElementById("score");
+var score = 0;
+var map = currentMap;
+var resetBtn = document.getElementById("reset");
+var status = document.getElementById("status");
+resetBtn.addEventListener("click", function() {
+	var defMap = JSON.stringify({StoredMap: currentMap});
+
+	var playerLocations = JSON.stringify({
+		pacx: pacmanTile.x,
+		pacy: pacmanTile.y,
+		oghostx: orangeTile.x,
+		oghosty: orangeTile.y,
+		pghostx: pinkTile.x,
+		pghosty: pinkTile.y,
+		bghostx: blueTile.x,
+		bghosty: blueTile.y,
+		rghostx: redTile.x,
+		rghosty: redTile.y
+	});
+
+	localStorage.setItem('pacmap', defMap);
+	localStorage.setItem('locations', playerLocations);
+	status.textContent = "The change will be made as soon as the game restarts."
+}, false);
+
+function resetMap() {
+	status.textContent = "";
+	score = 0;
+	var locations = JSON.parse(localStorage.getItem('locations'));
+	if(locations){
+		player.x = locations.pacx;
+		player.y = locations.pacy;
+
+		ghosts[0].x = locations.oghostx;
+		ghosts[0].y = locations.oghosty;
+
+		ghosts[1].x = locations.pghostx;
+		ghosts[1].y = locations.pghosty;
+
+		ghosts[2].x = locations.bghostx;
+		ghosts[2].y = locations.bghosty;
+
+		ghosts[3].x = locations.rghostx;
+		ghosts[3].y = locations.rghosty;
+	}
+	else {
+		player.x = pacmanTile.x;
+		player.y = pacmanTile.y;
+
+		ghosts[0].x = orangeTile.x;
+		ghosts[0].y = orangeTile.y;
+
+		ghosts[1].x = pinkTile.x;
+		ghosts[1].y = pinkTile.y;
+
+		ghosts[2].x = blueTile.x;
+		ghosts[2].y = blueTile.y;
+
+		ghosts[3].x = redTile.x;
+		ghosts[3].y = redTile.y;
+	}
+
+	ghosts.forEach(function(g){
+		g.dead = false;
+		g.scared = false;
+	});
+	if ( JSON.parse(localStorage.getItem('pacmap'))){
+		map = JSON.parse(localStorage.getItem('pacmap')).StoredMap;
+	}else{
+	map = [
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 5, 7, 3, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 2, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4], 
+[4, 7, 4, 7, 5, 7, 5, 7, 3, 1, 1, 2, 11, 3, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 5, 7, 3, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 7, 7, 4], 
+[4, 7, 4, 7, 6, 7, 6, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 4, 7, 5, 7, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 10, 7, 4, 7, 4], 
+[4, 7, 4, 7, 3, 1, 2, 7, 4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 5, 7, 4, 7, 4], 
+[4, 7, 6, 7, 7, 10, 7, 7, 4, 7, 4, 5, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 6, 7, 7, 7, 4, 7, 4, 7, 4], 
+[4, 7, 7, 7, 5, 7, 5, 7, 4, 7, 4, 4, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 7, 7, 5, 7, 6, 7, 6, 7, 4], 
+[4, 7, 5, 7, 4, 7, 4, 7, 4, 7, 4, 4, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7, 5, 7, 4, 7, 7, 7, 7, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 4, 7, 6, 6, 7, 5, 1, 1, 9, 9, 1, 1, 5, 7, 7, 6, 7, 6, 7, 3, 1, 2, 7, 4], 
+[4, 7, 6, 7, 4, 7, 6, 7, 6, 7, 10, 7, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 7, 7, 4, 7, 7, 7, 7, 7, 7, 5, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 3, 1, 1, 2, 7, 3, 1, 1, 1, 4], 
+[1, 1, 2, 7, 4, 7, 5, 7, 5, 5, 7, 4, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 3, 1, 1, 2, 7, 3, 1, 1, 1, 4], 
+[4, 7, 7, 7, 4, 7, 4, 7, 4, 4, 7, 6, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 5, 7, 6, 7, 4, 7, 4, 4, 7, 7, 7, 6, 1, 1, 1, 1, 1, 1, 6, 7, 7, 5, 7, 5, 7, 5, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 4, 7, 4, 4, 7, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4, 7, 4, 7, 4], 
+[4, 7, 4, 7, 5, 7, 6, 7, 4, 4, 7, 4, 7, 5, 7, 5, 7, 5, 7, 5, 7, 5, 7, 4, 7, 4, 7, 6, 7, 4, 7, 4], 
+[4, 7, 4, 7, 4, 7, 7, 7, 4, 4, 7, 4, 7, 4, 7, 4, 7, 6, 7, 4, 7, 4, 7, 4, 7, 4, 7, 10, 7, 4, 7, 4], 
+[4, 7, 6, 7, 4, 7, 5, 7, 4, 4, 7, 4, 7, 4, 7, 6, 7, 11, 7, 6, 7, 4, 7, 4, 7, 4, 7, 5, 7, 4, 7, 4], 
+[4, 7, 10, 7, 6, 7, 6, 7, 6, 6, 7, 6, 7, 6, 7, 7, 7, 5, 7, 7, 7, 6, 7, 4, 7, 4, 7, 4, 7, 6, 7, 4], 
+[4, 7, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 6, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4, 7, 7, 7, 4], 
+[4, 7, 4, 7, 3, 1, 1, 1, 2, 7, 3, 2, 7, 3, 1, 2, 7, 7, 7, 3, 1, 2, 7, 6, 7, 6, 7, 4, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4], 
+[4, 7, 6, 7, 3, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 2, 7, 6, 7, 6, 7, 4], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 2, 7, 4], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 11, 4], 
+[4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4], 
+
+];
+
+
+	} 
+};
+
+//CLASS THAT HELPS GET INFO FROM JSON---------------------------------------------------
+function pacmanSpriteAtlas(jsonArray) {
+	this.srcArray = jsonArray;
+	this.spriteSheetLocation = jsonArray.meta.image;
+
+	this.SpriteSheet;
+
+	this.getSprite = function(filename) {
+		var foundSprite = false;
+		for (var i = 0; i < this.srcArray.frames.length; i++) {
+			if (this.srcArray.frames[i].filename == filename) {
+				var wantedSprite = this.srcArray.frames[i];
+				return {
+					srcImage: this.SpriteSheet,
+					srcx: wantedSprite.frame.x,
+					srcy: wantedSprite.frame.y,
+					srcwidth: wantedSprite.frame.w,
+					srcheight: wantedSprite.frame.h,
+					width: wantedSprite.frame.w,
+					height: wantedSprite.frame.h, 
+					scale: 1.0,
+					draw: function(posx, posy) {
+						context.drawImage(this.srcImage, this.srcx, this.srcy, this.srcwidth, this.srcheight, posx, posy, this.width * this.scale, this.height * this.scale);
+					}
+				};
+			}
+		}
+
+		return null;
+	};
+};
+
+//------------------------------------------------------------------------------------------
+
+//The variable that holds the atlas as a class
+var pacmanAtlas = new pacmanSpriteAtlas(pacmanSpriteSheet);
+//SETTING UP THE CANVAS----------------------------------------------------------------------
+var canvas = document.getElementById("game");
+canvas.width = 512;
+canvas.height = 512;
+var played = false;
+
+var context = canvas.getContext('2d');
+
+//-------------------------------------------------------------------------------------------
+
+//PLAYER CLASS-------------------------------------------------------------------------------
+//	0-RIGHT	1-LEFT	2-UP	3-DOWN
+var player = {
+	sprite1: [],
+	sprite2: [],
+	state: 0,
+	vel: 16,
+	dr: 0,	//the direction pacman is facing
+	x: 0, 
+	y: 0,
+	draw: function() {
+		this.state += 1;
+		if (this.state > 10) this.state = 0;
+		if (this.state < 5) {
+			this.sprite1[this.dr].draw(this.x, this.y);
+		}
+		else {
+			this.sprite2[this.dr].draw(this.x, this.y);
+		}
+	}, 
+	move: function() {
+		if (this.dr === 0) {
+			if(!(map[player.y/16][(player.x + 16) / 16] < 7) && map[player.y/16][(player.x + 16) / 16] !== 9) {
+				this.x += this.vel;
+			}
+		}
+		else if (this.dr === 1) {
+			if(!(map[player.y/16][(player.x - 16) / 16] < 7) && map[player.y/16][(player.x - 16) / 16] !== 9) this.x -= this.vel;
+		}
+		else if (this.dr === 2) {
+			if(!(map[(player.y - 16) / 16][(player.x) / 16] < 7) && map[(player.y - 16)/16][(player.x) / 16] !== 9) this.y -= this.vel;
+		}
+		else if (this.dr === 3) {
+			if (!(map[(player.y + 16)/16][(player.x) / 16] < 7) && map[(player.y + 16)/16][(player.x) / 16] !== 9) this.y += this.vel;
+		}
+	}
+};
+
+//-------------------------------------------------------------------------------------------
+
+//THE GHOSTS AI---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+function moveDecision(ghost) {
+	var options = [];
+	//the choices the have to turn to is limited depending on the direction they are facing and whether
+	//or not that turn is towards a wall or not
+	if (ghost.dr === 0){
+		if (!(map[(ghost.y)/16][(ghost.x + 16) / 16] < 7)) {
+			options.push({x:ghost.x + 16, y: ghost.y, dir: 0});
+		}
+		if (!(map[(ghost.y + 16)/16][(ghost.x) / 16] < 7)) {
+			if (ghost.dead) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			else {
+				if(!(map[(ghost.y + 16)/16][(ghost.x) / 16] === 9)) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			}
+		}
+		if (!(map[(ghost.y - 16)/16][(ghost.x) / 16] < 7)) {
+			options.push({x: ghost.x, y: ghost.y - 16, dir: 2});
+		}
+		if (options.length === 1) {
+			ghost.x = options[0].x;
+			ghost.y = options[0].y;
+			return;
+		}
+		else if (options.length === 0) {	//turn around if there is no other way
+			ghost.dr = 1;
+			ghost.x = ghost.x - 16;
+		}
+		
+		var shortest = {
+			lngth: 10000000,
+			ind: 0
+		};
+		var target = ghost.targetTile;
+		var i = 0
+		options.forEach(function(o) {
+			var pathSize = Math.sqrt(Math.pow(target.x - o.x, 2) + Math.pow((-target.y - (-o.y)), 2));
+
+			if (pathSize < shortest.lngth) {
+				shortest.lngth = pathSize;
+				shortest.ind = i;
+			}
+
+			i++;
+		});
+		ghost.x = options[shortest.ind].x;
+		ghost.y = options[shortest.ind].y;
+		ghost.dr = options[shortest.ind].dir;
+
+	}
+	else if (ghost.dr === 1) {
+		if (!(map[(ghost.y)/16][(ghost.x - 16) / 16] < 7)) {
+			options.push({x: ghost.x - 16, y: ghost.y, dir: 1});
+		}
+		if (!(map[(ghost.y + 16)/16][(ghost.x) / 16] < 7)) {
+			if (ghost.dead) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			else {
+				if(!(map[(ghost.y + 16)/16][(ghost.x) / 16] === 9)) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			}
+		}
+		if (!(map[(ghost.y - 16)/16][(ghost.x) / 16] < 7)) {
+			options.push({x: ghost.x, y: ghost.y - 16, dir: 2});
+		}
+		if (options.length === 1) {
+			ghost.x = options[0].x;
+			ghost.y = options[0].y;
+			return;
+		}
+		else if (options.length === 0) {	//turn around if there is no other way
+			ghost.dr = 0;
+			ghost.x = ghost.x + 16;
+		}
+		
+		var shortest = {
+			lngth: 100000000,
+			ind: 0
+		};
+		var target = ghost.targetTile;
+		var i = 0
+		options.forEach(function(o) {
+			var pathSize = Math.sqrt(Math.pow(target.x - o.x, 2) + Math.pow((-target.y - (-o.y)), 2));
+
+			if (pathSize < shortest.lngth) {
+				shortest.lngth = pathSize;
+				shortest.ind = i;
+			}
+
+			i++;
+		});
+		ghost.x = options[shortest.ind].x;
+		ghost.y = options[shortest.ind].y;
+		ghost.dr = options[shortest.ind].dir;
+	}
+	else if (ghost.dr === 2) {
+		if (!(map[(ghost.y - 16)/16][(ghost.x) / 16] < 7)) {
+			options.push({x: ghost.x, y: ghost.y - 16, dir: 2});
+		}
+		if (!(map[(ghost.y)/16][(ghost.x + 16) / 16] < 7)) {
+			options.push({x: ghost.x + 16, y: ghost.y, dir: 3});
+		}
+		if (!(map[(ghost.y)/16][(ghost.x - 16) / 16] < 7)) {
+			options.push({x: ghost.x - 16, y: ghost.y, dir: 1});
+		}
+
+		if (options.length === 1) {
+			ghost.x = options[0].x;
+			ghost.y = options[0].y;
+			return;
+		}
+		else if (options.length === 0) {	//turn around if there is no other way
+			ghost.dr = 3;
+			ghost.y = ghost.y + 16;
+		}
+		var shortest = {
+			lngth: 10000000,
+			ind: 0
+		};
+		var target = ghost.targetTile;
+		var i = 0
+		options.forEach(function(o) {
+			var pathSize = Math.sqrt(Math.pow(target.x - o.x, 2) + Math.pow((-target.y - (-o.y)), 2));
+
+			if (pathSize < shortest.lngth) {
+				shortest.lngth = pathSize;
+				shortest.ind = i;
+			}
+
+			i++;
+		});
+		ghost.x = options[shortest.ind].x;
+		ghost.y = options[shortest.ind].y;
+		ghost.dr = options[shortest.ind].dir;
+	}
+	else if (ghost.dr === 3) {
+		if (!(map[(ghost.y + 16)/16][(ghost.x) / 16] < 7)) {
+			if (ghost.dead) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			else {
+				if(!(map[(ghost.y + 16)/16][(ghost.x) / 16] === 9)) options.push({x: ghost.x, y: ghost.y + 16, dir: 3});
+			}
+		}
+		if (!(map[(ghost.y)/16][(ghost.x + 16) / 16] < 7)) {
+			options.push({x: ghost.x + 16, y: ghost.y, dir: 0});
+		}
+		if (!(map[(ghost.y)/16][(ghost.x - 16) / 16] < 7)) {
+			options.push({x: ghost.x - 16, y: ghost.y, dir: 1});
+		}
+		if (options.length === 1) {
+			ghost.x = options[0].x;
+			ghost.y = options[0].y;
+			return;
+		}
+		else if (options.length === 0) {	//turn around if there is no other way
+			ghost.dr = 2;
+			ghost.y = ghost.y - 16;
+		}
+		
+		var shortest = {
+			lngth: 10000000,
+			ind: 0
+		};
+		var target = ghost.targetTile;
+		var i = 0
+		options.forEach(function(o) {
+			var pathSize = Math.sqrt(Math.pow(target.x - o.x, 2) + Math.pow((-target.y - (-o.y)), 2));
+
+			if (pathSize < shortest.lngth) {
+				shortest.lngth = pathSize;
+				shortest.ind = i;
+			}
+
+			i++;
+		});
+		ghost.x = options[shortest.ind].x;
+		ghost.y = options[shortest.ind].y;
+		ghost.dr = options[shortest.ind].dir;
+	}
+}
+
+function updateDeath(ghost) {
+	if (ghost.scared) {
+			ghost.targetTile.x = ghost.scatterTile.x;
+			ghost.targetTile.y = ghost.scatterTile.y;
+			ghost.wait -= 1;
+			if (ghost.wait === 0) ghost.scared = false;
+			return true;
+		}
+	else if (ghost.dead) {
+		if (ghost.x === 16 * 16 && ghost.y === 16 * 16) {
+			ghost.dead = false;
+		}
+		ghost.targetTile.x = 16 * 16;
+		ghost.targetTile.y = 16 * 15;
+		return true;
+	}
+	else if (ghost.x > 200 && ghost.x < 350 &&
+			 ghost.y > 200 && ghost.y < 300){
+			ghost.targetTile.x = 256;
+			ghost.targetTile.y = 16;
+			return true;
+	}
+	return false;
+};
+
+function ghostAndPacColl(ghost){
+	if(!played) played = true;
+	var distance = Math.sqrt(Math.pow(player.x - ghost.x, 2) + Math.pow((-player.y - (-ghost.y)), 2));
+	if (distance < 17) {
+		return true;
+	}
+	return false;
+}
+
+function Ghost(g) {
+	g.sprite = null;
+	g.scaredspr = null;
+	g.deadspr = null;
+	g.vel = 16;
+	g.targetTile = {x: 0, y: 0};
+	g.dr = 2;
+	g.scared = false;
+	g.dead = false;
+	g.wait = 0;
+	g.draw = function() {
+		if (this.scared){
+			//It starts blinking when its almost time for them to be normal again
+			if (this.wait < 20){
+				if (this.wait % 5 === 0){
+					context.fillStyle = "#FFF"
+					context.fillRect(this.x, this.y, 16, 16);
+					context.fillStyle = "#000";
+					return;
+				}
+			}
+		 this.scaredspr.draw(this.x, this.y);
+		}
+		else if (this.dead) this.deadspr.draw(this.x, this.y);
+		else this.sprite.draw(this.x, this.y);
+	};
+
+	g.move = function() {
+		moveDecision(this);
+	};
+
+	return g;
+};
+
+ghosts = [];
+
+//ORANGE GHOST------------------------------------------------------------------------------------------------------------------
+ghosts.push(new Ghost({
+	x: 16 * 16,
+	y: 16 * 13,
+	scatterTile: {
+		x: canvas.width - (16 * 4), 
+		y: 16 * 13
+	},
+
+	update: function() {
+		if (updateDeath(this)) return;
+	
+		//If the distance between the player and the ghost is less than eight, then he will pursue him, otherwise he runs away
+
+		var distance = Math.sqrt(Math.pow(player.x - this.x, 2) + Math.pow((-player.y - (-this.y)), 2));
+
+		if (distance > 16 * 8){
+			this.targetTile.x = player.x;
+			this.targetTile.y = player.y;
+		}
+		else{
+			this.targetTile.x = this.scatterTile.x;
+			this.targetTile.y = this.scatterTile.y;
+		}
+	}
+})
+);
+
+//----------------------------------------------------------------------------------------------------------------------------
+
+//PGHOST----------------------------------------------------------------------------------------------------------------------
+
+ghosts.push(new Ghost({
+	x: 16 * 16,
+	y: 16 * 14,
+	scatterTile: {
+		x: 32,
+		y: 32
+	},
+	update: function() {
+		if (updateDeath(this)) return;
+
+		//This one is always 4 steps ahead of pacman depending on his direction
+
+		if (this.wait < 0 && this.wait > -29){
+			if (player.dr === 0) {
+				this.targetTile.x = player.x + (16 * 4);
+				this.targetTile.y = player.y;
+			}
+			else if (player.dr === 1) {
+				this.targetTile.x = player.x - (16 * 4);
+				this.targetTile.y = player.y;
+			}
+			else if (player.dr === 2) {
+				this.targetTile.x = player.x;
+				this.targetTile.y = player.y - (16 * 4);
+			}
+			else if (player.dr === 3) {
+				this.targetTile.x = player.x;
+				this.targetTile.y = player.y + (16 * 4);	
+			}
+			this.wait -= 1;
+		}
+		else if (this.wait === -30) {
+			this.wait = 30;
+			this.targetTile.x = this.scatterTile.x;
+			this.targetTile.y = this.scatterTile.y;
+		}
+		else {
+			this.wait -= 1;
+		}
+	}
+})
+
+);
+
+//---------------------------------------------------------------------------------------------------------------------------
+
+//BGHOST--------------------------------------------------------------------------------------------------------------------
+ghosts.push(new Ghost({
+	x: 16 * 15,
+	y: 16 * 14,
+	scatterTile: {
+		x: canvas.width - 100,
+		y: canvas.height - 32
+	},
+
+	update: function() {
+		if (updateDeath(this)) return;
+
+		//since the blue ghost's actual AI would take to much CPU to compute, I made him move randomly across the map, sorry.
+
+		var distance = Math.sqrt(Math.pow(this.targetTile.x - this.x, 2) + Math.pow((-this.targetTile.y - (-this.y)), 2))
+
+		if (this.wait < 0 && this.wait > -29){
+			if (distance < 16 * 5){
+				this.targetTile.x = 16 * (Math.random() * 16);
+				this.targetTile.y = 16 * (Math.random() * 10);
+			}
+			this.wait -= 1;
+		}
+		else if (this.wait === -30) {
+			this.wait = 30;
+			this.targetTile.x = this.scatterTile.x;
+			this.targetTile.y = this.scatterTile.y;
+		}
+		else {
+			this.wait -= 1;
+		}
+	}
+})
+);
+//-------------------------------------------------------------------------------------------------------------------------
+
+//RGHOST-------------------------------------------------------------------------------------------------------------------
+
+ghosts.push(new Ghost({
+	x: 16 * 15,
+	y: 16 * 14,
+	scatterTile: {
+		x: 32,
+		y: canvas.height - 32
+	},
+	update: function() {
+		if (updateDeath(this)) return;
+
+		//He pursues the player for certain amount of time, then he just scatters for while, and the cycles goes on
+
+		if (this.wait < 0 && this.wait > -29){
+			this.targetTile.x = player.x;
+			this.targetTile.y = player.y;
+			this.wait -= 1;
+		}
+		else if (this.wait === -30) {
+			this.wait = 30;
+			this.targetTile.x = this.scatterTile.x;
+			this.targetTile.y = this.scatterTile.y;
+		}
+		else {
+			this.wait -= 1;
+		}
+	}
+})
+
+);
+
+//-------------------------------------------------------------------------------------------------------------------
+
+
+
+//LOADING THE SPRITESHEET--------------------------------------------------------------------
+var playable = false;
+var spriteSheet = new Image(); 
+spriteSheet.src = pacmanAtlas.spriteSheetLocation;
+spriteSheet.onload = function(){
+	var ctx = this;
+	
+	pacmanAtlas.SpriteSheet = ctx;
+
+	player.sprite1.push(pacmanAtlas.getSprite("pm1.png"));
+	player.sprite1.push(pacmanAtlas.getSprite("pm1left.png"));
+	player.sprite1.push(pacmanAtlas.getSprite("pm1up.png"));
+	player.sprite1.push(pacmanAtlas.getSprite("pm1down.png"));
+
+	player.sprite2.push(pacmanAtlas.getSprite("pm2.png"));
+	player.sprite2.push(pacmanAtlas.getSprite("pm2left.png"));
+	player.sprite2.push(pacmanAtlas.getSprite("pm2up.png"));
+	player.sprite2.push(pacmanAtlas.getSprite("pm2down.png"));
+
+	ghosts[0].sprite = pacmanAtlas.getSprite("oghost.png");
+	ghosts[1].sprite = pacmanAtlas.getSprite("pghost.png");
+	ghosts[2].sprite = pacmanAtlas.getSprite("bghost.png");
+	ghosts[3].sprite = pacmanAtlas.getSprite("rghost.png");
+
+	ghosts.forEach(function(g){
+		g.sprite.scale = 0.25;
+		g.deadspr = pacmanAtlas.getSprite("eyes.png");
+		g.deadspr.scale = 0.25;
+		g.scaredspr = pacmanAtlas.getSprite("scaredghost.png");
+		g.scaredspr.scale = 0.25;
+	});
+
+	player.sprite1.forEach(function(s) {
+		s.scale = 0.25;
+	});
+	player.sprite2.forEach(function(s) {
+		s.scale = 0.25;
+	});
+
+	resetMap();
+	convertToLevel(map, pacmanAtlas);
+	playable = true;
+};
+
+//-------------------------------------------------------------------------------------------
+
+
+//MAIN GAME LOOP--------------------------------------------------------------------------------------------------
+
+function update() {
+	if (keydown.right) {
+		if(!(map[player.y/16][(player.x + 16) / 16] < 7) && map[player.y/16][(player.x + 16) / 16] !== 9) {
+			player.dr = 0
+		}
+	}
+	else if (keydown.left) {
+		if(!(map[player.y/16][(player.x - 16) / 16] < 7) && map[player.y/16][(player.x - 16) / 16] !== 9){
+			player.dr = 1;
+		}
+	}
+	else if (keydown.up) {
+		if(!(map[(player.y - 16) / 16][(player.x) / 16] < 7) && map[(player.y - 16)/16][(player.x) / 16] !== 9){
+			player.dr = 2;
+		}
+	}
+	else if (keydown.down) {
+		if (!(map[(player.y + 16)/16][(player.x) / 16] < 7) && map[(player.y + 16)/16][(player.x) / 16] !== 9){
+			player.dr = 3;
+		}
+	}
+	
+	ghosts.forEach(function(g){
+		if (g.scared && ghostAndPacColl(g)){
+			g.scared = false;
+			g.dead = true;
+			score += 200;
+			scoreDisplay.textContent = "Score: " + score.toString();
+		}
+	});
+	
+	ghosts.forEach(function(g) {
+		g.move();
+		g.update();
+	});
+
+	player.move();
+
+
+	if(map[player.y / 16][player.x / 16] === 10){
+		map[player.y / 16][player.x / 16] = 8;
+		ghosts.forEach(function(g){
+				if (!g.dead){
+					g.scared = true;
+					g.wait = 80;
+				}
+		});
+	}
+
+	if (map[player.y / 16][player.x / 16] === 7 ||
+		map[player.y / 16][player.x / 16] === 11  ) {
+		if (map[player.y / 16][player.x / 16] !== 11){ 
+			ballcount -= 1;
+			score += 10;
+			scoreDisplay.textContent = "Score: " + score.toString();
+		}
+		else {
+			score += 100;
+			scoreDisplay.textContent = "Score: " + score.toString();
+		}
+		map[player.y / 16][player.x / 16] = 8;
+	}
+
+	ghosts.forEach(function(g){
+		if(!g.dead && !g.scared && ghostAndPacColl(g)) {
+			playable = false;
+		}
+	});
+
+	if (ballcount === 0) {
+		playable = false;
+	}
+};
+
+
+function draw() {
+	context.fillRect(0, 0, canvas.width, canvas.height);
+	convertToLevel(map, pacmanAtlas);
+	player.draw();
+	ghosts.forEach(function(g){
+		g.draw();
+	});
+
+};
+
+function DrawMessage(message){
+	context.fillStyle = "#09B1F9";
+	context.rect(((canvas.width / 2) - 150) - 10, (canvas.height / 2) - 28, 370,50);
+	context.fill();
+	context.fillStyle = "#F1F50D";
+	context.stroke();
+
+	context.fillStyle = "#FFFFFF";
+	context.font = '20pt Times News';
+	context.fillText(message, (canvas.width / 2) - 150, canvas.height / 2);
+	context.fillStyle = "#000";
+}
+
+function gameloop() {
+	if (playable) {
+		update();
+		draw();	
+	}
+	else {
+		if (!played) {
+			DrawMessage("Loading");
+		}
+		else{
+			if (ballcount === 0) {
+				DrawMessage("You won! Press N to play again");
+			}
+			else {
+				DrawMessage("You lost! Press N to play again");
+			}
+		}
+		if (keydown.n) {
+			resetMap();
+			playable = true;
+		}
+	}
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+
+setInterval(gameloop, 100);
+});
+</script>
+<html>

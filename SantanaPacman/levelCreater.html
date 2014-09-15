@@ -1,0 +1,573 @@
+<html>
+<head>
+	<script src="jquery-1.10.2.js" ></script>
+	<script src="jquery.hotkeys-master/jquery.hotkeys.js"></script>
+	<script src="key_status.js"></script>
+	<script type="text/javascript" charset="UTF-8" src="pacmanAtlas.json"></script>
+	<script type="text/javascript" src="levels16bit.js"></script>
+	<script type="text/javascript" src="currentMap.js"></script>
+	<style>
+
+	body {
+		font-family: "Arial";
+		background-color: black;
+	}
+	p {
+		color: white;
+	}
+
+	div {
+		color: white;
+		background-color: black;
+		border-style: solid;
+		border-color: #09B1F9;
+		float: right;
+	}
+	canvas {
+		border-style: solid;
+		border-color: #09B1F9;
+	}
+	#welcome {
+		font-size: 1.2em;
+	}
+	button {
+		max-width: 250px;
+		max-height: 20px;
+	}
+	#location {
+		margin-top: -10px;
+	}
+	#instructs {
+		border-style: none;
+	}
+	a {
+
+		color: #09B1F9;
+	}
+	.two-col-special {
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.two-col-special li {
+    display: inline-block;
+    width: 45%;
+    margin: 0;
+    padding: 0;
+    vertical-align: top; /* In case multi-word categories form two lines */
+}
+.two-col-special li:before {
+    content: '-';
+    padding: 5px;
+    margin-right: 2px; /* you can tweak the gap */
+    background-color: black; /* in case you want a color... */
+    display: inline-block;
+}
+	</style>
+<head>
+
+	<body id="body">
+
+		 <p id="welcome">
+		 	Welcome to pacman level creator! <br> 
+		 	Your cursor is the blue block, move him with the directional keys over a tile and press a key to change that tile to the tile that key holds.
+		 </p>
+		 <p id="location">
+		 </p>
+		<div style="border-radius: 5px; padding: 10px;">
+			<button id="save">Set To Current Game Map</button>
+			<button id="reset">Reset to default </button>
+			<p><a href="pacman16bitgame.html">Pacman Game</a> </p>
+			<p id="status"></p>
+				<p> Once you Set To Current Game Map, You can link back to the pacman game and play your created map!</p>
+				<p>a database will be made as soon as possible (once I learn server-side programming)<br> to add more features to this.</p>
+		</div>
+		<div style="float: right; width: 500px;display: block; clear: right;">
+			<h3>Key</h3>
+			<ul class="two-col-special">
+				<li>
+		 Q : <img src="PacmanTiles/horizontalleftend.png" height="16" width="16" alt="">  
+				</li>
+				<li>
+		 W : <img src="PacmanTiles/horizontalwall.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 E : <img src="PacmanTiles/horizontalrightend.png" height="16" width="16" alt="">    
+					
+				</li>
+				<li>
+		 R : <img src="PacmanTiles/verticalwall.png" height="16" width="16" alt="">    
+					
+				</li>
+				<li>
+					
+		 T : <img src="PacmanTiles/verticaltopend.png" height="16" width="16" alt="">  
+				</li>
+				<li>
+					
+		 Y : <img src="PacmanTiles/verticalbottomend.png" height="16" width="16" alt="">   
+				</li>
+				<li>
+		 U : <img src="PacmanTiles/food.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 I : [DELETE] 
+					
+				</li>
+				<li>
+		 O : <img src="PacmanTiles/ghostline.png" height="16" width="16" alt="">  
+					
+				</li>
+				<li>
+		 P : <img src="PacmanTiles/power.png" height="16" width="16" alt="">  
+					
+				</li>
+				<li>
+		 A : <img src="PacmanTiles/cherry.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 S : <img src="PacmanTiles/pm1.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 D : <img src="PacmanTiles/oghost.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 F : <img src="PacmanTiles/pghost.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 G : <img src="PacmanTiles/bghost.png" height="16" width="16" alt="">   
+					
+				</li>
+				<li>
+		 H : <img src="PacmanTiles/rghost.png" height="16" width="16" alt=""> 
+					
+				</li>
+				
+			</ul>
+			
+		</div>
+	</body>
+
+<script>
+$(document).ready(function() {
+var body = document.getElementById("body");
+
+var canvas = document.createElement("canvas");
+canvas.width = 512;
+canvas.height = 512;
+canvas.id = "game";
+
+var savebtn = document.getElementById("save");
+var resetbtn = document.getElementById("reset");
+var status = document.getElementById("status")
+
+//var hide = document.getElementById("hide");
+
+//hide.addEventListener("click", function() {
+//	mapPlacement.textContent = "PRESS SPACE TO SEE THE MAP ARRAY";
+//}, false);
+
+resetbtn.addEventListener("click", function() {
+	var defMap = JSON.stringify({StoredMap: [
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 5, 7, 3, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 2, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4], 
+[4, 7, 4, 7, 5, 7, 5, 7, 3, 1, 1, 2, 11, 3, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 5, 7, 3, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 7, 7, 4], 
+[4, 7, 4, 7, 6, 7, 6, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 4, 7, 5, 7, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 7, 5, 7, 4, 7, 10, 7, 4, 7, 4], 
+[4, 7, 4, 7, 3, 1, 2, 7, 4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 6, 7, 5, 7, 4, 7, 4], 
+[4, 7, 6, 7, 7, 10, 7, 7, 4, 7, 4, 5, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 6, 7, 7, 7, 4, 7, 4, 7, 4], 
+[4, 7, 7, 7, 5, 7, 5, 7, 4, 7, 4, 4, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 7, 7, 5, 7, 6, 7, 6, 7, 4], 
+[4, 7, 5, 7, 4, 7, 4, 7, 4, 7, 4, 4, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7, 5, 7, 4, 7, 7, 7, 7, 7, 4], 
+[4, 7, 4, 7, 4, 7, 4, 7, 4, 7, 6, 6, 7, 5, 1, 1, 9, 9, 1, 1, 5, 7, 7, 6, 7, 6, 7, 3, 1, 2, 7, 4], 
+[4, 7, 6, 7, 4, 7, 6, 7, 6, 7, 10, 7, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 7, 7, 4, 7, 7, 7, 7, 7, 7, 5, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 3, 1, 1, 2, 7, 3, 1, 1, 1, 4], 
+[1, 1, 2, 7, 4, 7, 5, 7, 5, 5, 7, 4, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 3, 1, 1, 2, 7, 3, 1, 1, 1, 4], 
+[4, 7, 7, 7, 4, 7, 4, 7, 4, 4, 7, 6, 7, 4, 8, 8, 8, 8, 8, 8, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 5, 7, 6, 7, 4, 7, 4, 4, 7, 7, 7, 6, 1, 1, 1, 1, 1, 1, 6, 7, 7, 5, 7, 5, 7, 5, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 4, 7, 4, 4, 7, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4, 7, 4, 7, 4], 
+[4, 7, 4, 7, 5, 7, 6, 7, 4, 4, 7, 4, 7, 5, 7, 5, 7, 5, 7, 5, 7, 5, 7, 4, 7, 4, 7, 6, 7, 4, 7, 4], 
+[4, 7, 4, 7, 4, 7, 7, 7, 4, 4, 7, 4, 7, 4, 7, 4, 7, 6, 7, 4, 7, 4, 7, 4, 7, 4, 7, 10, 7, 4, 7, 4], 
+[4, 7, 6, 7, 4, 7, 5, 7, 4, 4, 7, 4, 7, 4, 7, 4, 7, 11, 7, 4, 7, 4, 7, 4, 7, 4, 7, 5, 7, 4, 7, 4], 
+[4, 7, 10, 7, 6, 7, 6, 7, 6, 6, 7, 6, 7, 6, 7, 6, 3, 1, 2, 6, 7, 6, 7, 4, 7, 4, 7, 4, 7, 6, 7, 4], 
+[4, 7, 5, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4, 7, 7, 7, 4], 
+[4, 7, 4, 7, 3, 1, 1, 1, 2, 7, 3, 2, 7, 3, 1, 1, 2, 7, 3, 1, 1, 2, 7, 6, 7, 6, 7, 4, 7, 5, 7, 4], 
+[4, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 7, 4, 7, 4], 
+[4, 7, 6, 7, 3, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 2, 7, 6, 7, 6, 7, 4], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4], 
+[4, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 1, 2, 7, 3, 1, 1, 1, 1, 1, 1, 2, 7, 4], 
+[4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 11, 4], 
+[4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4], 
+
+]});
+	map = JSON.parse(localStorage.getItem('pacmap')).StoredMap;
+
+	var playerLocations = JSON.stringify({
+		pacx: pacmanTile.x,
+		pacy: pacmanTile.y,
+		oghostx: orangeTile.x,
+		oghosty: orangeTile.y,
+		pghostx: pinkTile.x,
+		pghosty: pinkTile.y,
+		bghostx: blueTile.x,
+		bghosty: blueTile.y,
+		rghostx: redTile.x,
+		rghosty: redTile.y
+	});
+
+	pacman.x = pacmanTile.x;
+	pacman.y = pacmanTile.y;
+
+	orange.x = orangeTile.x;
+	orange.y = orangeTile.y;
+
+	pink.x = pinkTile.x;
+	pink.y = pinkTile.y;
+
+	blue.x = blueTile.x;
+	blue.y = blueTile.y;
+
+	red.x = redTile.x;
+	red.y = redTile.y;
+
+	localStorage.setItem('pacmap', defMap);
+	localStorage.setItem('locations', playerLocations);
+}, false);
+
+savebtn.addEventListener("click", function() {
+	var storedpacmap = {StoredMap: map};
+	var mapJson = JSON.stringify(storedpacmap);
+
+	var playerLocations = JSON.stringify({
+		pacx: pacman.x,
+		pacy: pacman.y,
+		oghostx: orange.x,
+		oghosty: orange.y,
+		pghostx: pink.x,
+		pghosty: pink.y,
+		bghostx: blue.x,
+		bghosty: blue.y,
+		rghostx: red.x,
+		rghosty: red.y
+	});
+
+	localStorage.setItem('pacmap', mapJson);
+	localStorage.setItem('locations', playerLocations);
+
+    console.log("Updated");
+    status.textContent = "Map saved";
+
+    currentMap = map;
+}, false);
+
+var context = canvas.getContext('2d');
+
+body.appendChild(canvas);
+var mapStored = JSON.parse(localStorage.getItem('pacmap'));
+var map;
+if (mapStored){
+	map = mapStored.StoredMap;
+}
+else {
+	map = currentMap;
+}
+
+var mapPlacement = document.getElementById("mapstr");
+var location = document.getElementById("location");
+
+function pacmanSpriteAtlas(jsonArray) {
+	this.srcArray = jsonArray;
+	this.spriteSheetLocation = jsonArray.meta.image;
+
+	this.SpriteSheet;
+
+	this.getSprite = function(filename) {
+		var foundSprite = false;
+		for (var i = 0; i < this.srcArray.frames.length; i++) {
+			if (this.srcArray.frames[i].filename == filename) {
+				var wantedSprite = this.srcArray.frames[i];
+				return {
+					srcImage: this.SpriteSheet,
+					srcx: wantedSprite.frame.x,
+					srcy: wantedSprite.frame.y,
+					srcwidth: wantedSprite.frame.w,
+					srcheight: wantedSprite.frame.h,
+					width: wantedSprite.frame.w,
+					height: wantedSprite.frame.h, 
+					scale: 1.0,
+					draw: function(posx, posy) {
+						context.drawImage(this.srcImage, this.srcx, this.srcy, this.srcwidth, this.srcheight, posx, posy, this.width * this.scale, this.height * this.scale);
+					}
+				};
+			}
+		}
+
+		return null;
+	};
+
+};
+
+var pacmanAtlas = new pacmanSpriteAtlas(pacmanSpriteSheet);
+var playable = false;
+
+var pacman = {
+	sprite: null,
+	x: pacmanTile.x,
+	y: pacmanTile.y
+};
+
+var orange = {
+	sprite: null,
+	x: orangeTile.x,
+	y: orangeTile.y
+};
+
+var pink = {
+	sprite: null,
+	x: pinkTile.x,
+	y: pinkTile.y
+};
+
+var blue = {
+	sprite: null,
+	x: blueTile.x,
+	y: blueTile.y
+};
+
+var red = {
+	sprite: null,
+	x: redTile.x,
+	y: redTile.y
+};
+
+var startLocations = JSON.parse(localStorage.getItem('locations'));
+if (startLocations) {
+	pacman.x = startLocations.pacx;
+	pacman.y = startLocations.pacy;
+
+	orange.x = startLocations.oghostx;
+	orange.y = startLocations.oghosty;
+
+	pink.x = startLocations.pghostx;
+	pink.y = startLocations.pghosty;
+
+	blue.x = startLocations.bghostx;
+	blue.y = startLocations.bghosty;
+
+	red.x = startLocations.rghostx;
+	red.y = startLocations.rghosty;
+
+}
+
+var spriteSheet = new Image(); 
+spriteSheet.src = pacmanAtlas.spriteSheetLocation;
+spriteSheet.onload = function(){
+	var ctx = this;
+	pacmanAtlas.SpriteSheet = ctx;
+
+	pacman.sprite = pacmanAtlas.getSprite("pm1.png");
+	pacman.sprite.scale = 0.25;
+	orange.sprite = pacmanAtlas.getSprite("oghost.png");
+	orange.sprite.scale = 0.25;
+	pink.sprite = pacmanAtlas.getSprite("pghost.png");
+	pink.sprite.scale = 0.25;
+	blue.sprite = pacmanAtlas.getSprite("bghost.png");
+	blue.sprite.scale = 0.25;
+	red.sprite = pacmanAtlas.getSprite("rghost.png");
+	red.sprite.scale = 0.25;
+
+	playable = true;
+};
+
+
+
+function printMap(m) {
+	var mapString = "[\n";
+	for (var i = 0; i < m.length; i++) {
+		var mrow = m[i];
+		mapString = mapString + "["
+		for (var j = 0; j < mrow.length; j++) {
+			mapString = mapString + mrow[j].toString();
+			if (j != mrow.length -1) {
+				mapString = mapString +", ";
+			}
+		}
+		mapString = mapString + "], \n"
+	}
+	mapString = mapString + "\n]";
+	return mapString
+};
+
+var pointer = {
+	x: 0,
+	y: 0,
+	dir: 0,
+	draw: function() {
+		context.fillStyle = "#09B1F9";
+		context.fillRect(this.x, this.y, 16, 16);
+	},
+	move: function() {
+		if (this.dir === 0) {
+			if (this.x + 16 !== canvas.width) this.x += 16;
+		}
+		else if (this.dir === 1) {
+			if (this.x !== 0) this.x -= 16;
+		}
+		else if (this.dir === 2) {
+			if (this.y !== 0) this.y -= 16;
+		}
+		else if (this.dir === 3) {
+			if (this.y + 16 !== canvas.height) this.y += 16;
+		}
+	}
+}
+
+
+function update() {
+	if (keydown.right){
+		pointer.dir = 0;
+		pointer.move();
+	}
+	else if (keydown.left) {
+		pointer.dir = 1;
+		pointer.move();
+	}
+	else if (keydown.up) {
+		pointer.dir = 2;
+		pointer.move();
+	}
+	else if (keydown.down) {
+		pointer.dir = 3;
+		pointer.move();
+	}
+	//KEY------------------------------------------------------------------
+//Q - HORIZONTAL
+//W - HORIZONTAL LEFT END
+//E - HORIZONTAL RIGHT END
+//R - VERTICAL
+//T - VERTICAL top END
+//Y - VERTICAL bottom END
+//U - FOOD
+//I - EMPTY
+//----------------------------------------------------------------------
+
+	if (keydown.w) {
+		map[pointer.y / 16][pointer.x / 16] = 1;
+		status.textContent = "";
+	}
+	else if (keydown.e) {
+		map[pointer.y / 16][pointer.x / 16] = 2;
+		status.textContent = "";
+	}
+	else if (keydown.q){
+		map[pointer.y / 16][pointer.x / 16] = 3;
+		status.textContent = "";
+	}
+	else if (keydown.r){
+		map[pointer.y / 16][pointer.x / 16] = 4;
+		status.textContent = "";
+	}
+	else if (keydown.t){
+		map[pointer.y / 16][pointer.x / 16] = 5;
+		status.textContent = "";
+	}
+	else if (keydown.y){
+		map[pointer.y / 16][pointer.x / 16] = 6;
+		status.textContent = "";
+	}
+	else if (keydown.u){
+		map[pointer.y / 16][pointer.x / 16] = 7;
+		status.textContent = "";
+	}
+	else if (keydown.i){
+		map[pointer.y / 16][pointer.x / 16] = 8;
+		status.textContent = "";
+	}
+	else if (keydown.o) {
+		map[pointer.y / 16][pointer.x / 16] = 9;
+		status.textContent = "";
+	}
+	else if (keydown.p) {
+		map[pointer.y / 16][pointer.x / 16] = 10;
+		status.textContent = "";
+	}
+	else if (keydown.a) {
+		map[pointer.y / 16][pointer.x / 16] = 11;
+		status.textContent = "";
+	}
+	else if (keydown.s && !(map[pointer.y / 16][pointer.x / 16] < 7) && map[pointer.y / 16][pointer.x / 16] !== 9) {
+		pacman.x = pointer.x;
+		pacman.y = pointer.y;
+		status.textContent = "";
+	}
+	else if (keydown.d && !(map[pointer.y / 16][pointer.x / 16] < 7) && map[pointer.y / 16][pointer.x / 16] !== 9) {
+		orange.x = pointer.x;
+		orange.y = pointer.y;
+		status.textContent = "";
+	}
+	else if (keydown.f && !(map[pointer.y / 16][pointer.x / 16] < 7) && map[pointer.y / 16][pointer.x / 16] !== 9) {
+		pink.x = pointer.x;
+		pink.y = pointer.y;
+		status.textContent = "";
+	}
+	else if (keydown.g && !(map[pointer.y / 16][pointer.x / 16] < 7) && map[pointer.y / 16][pointer.x / 16] !== 9) {
+		blue.x = pointer.x;
+		blue.y = pointer.y;
+		status.textContent = "";
+	}
+	else if (keydown.h && !(map[pointer.y / 16][pointer.x / 16] < 7) && map[pointer.y / 16][pointer.x / 16] !== 9) {
+		red.x = pointer.x;
+		red.y = pointer.y;
+		status.textContent = "";
+	}
+//	else if(keydown.space || keydown.m) {
+//		console.log("var map = ")
+//		var mp = printMap(map);
+//		mapPlacement.textContent = "PRESS SPACE TO UPDATE THE MAP \nvar map = " + mp + 
+//		"\nPacman Location: X = " + pacman.x.toString() + ", Y = " + pacman.y.toString() + 
+//		"\nOrange Location: X = " + orange.x.toString() + ", Y = " + orange.y.toString() +
+//		"\nPink Location: X = " + pink.x.toString() + ", Y = " + pink.y.toString() +
+//		"\nBlue Location: X = " + blue.x.toString() + ", Y = " + blue.y.toString() +
+//		"\nRed Location: X = " + red.x.toString() + ", Y = " + red.y.toString();
+//	}
+
+	location.textContent = pointer.x.toString() + ", " + pointer.y.toString();
+};
+
+function draw() {
+	context.fillStyle = "#000";
+	context.fillRect(0, 0, canvas.width, canvas.height);
+	convertToLevel(map, pacmanAtlas);
+	pacman.sprite.draw(pacman.x, pacman.y);
+	orange.sprite.draw(orange.x, orange.y);
+	pink.sprite.draw(pink.x, pink.y);
+	blue.sprite.draw(blue.x, blue.y);
+	red.sprite.draw(red.x, red.y);
+
+	pointer.draw();
+
+};
+
+function gameLoop() {
+	if (playable) {
+		update();
+		draw();
+		
+	}
+};
+
+setInterval(gameLoop, 60);
+});
+</script>
+
+</html>
